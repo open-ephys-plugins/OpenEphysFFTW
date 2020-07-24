@@ -56,6 +56,10 @@ jobs:
         new_plugin_ver=$tag-API$plugin_api
         mkdir shared
         cp -v $build_dir/*.dll shared
+        if [ -d "libs" ]
+        then
+          cp -v libs/windows/bin/x64/*.dll shared
+        fi
         zipfile=${package}_${new_plugin_ver}.zip
         powershell Compress-Archive -Path "shared" -DestinationPath ${zipfile}
         user_info="$bintrayUser:$bintrayApiKey"

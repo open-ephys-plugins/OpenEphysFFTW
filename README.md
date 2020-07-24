@@ -6,9 +6,9 @@ It is currently used by the [Phase Calculator](https://github.com/tne-lab/phase-
 
 ## Dependency
 
-* On Linux or Mac, you need to install FFTW 3 (if not already present) into the standard library/header locations. See [here](http://www.fftw.org/download.html) for instructions on building from source. Many distributions may also provide FFTW 3 available in their package repositories. For instance, Ubuntu/Debian/Linux Mint provide the package `libfftw3-dev` (available on Ubuntu 14.04 "trusty" and later). The package on Arch Linux appears to be called simply `fftw`.
+* On Mac, you need to install FFTW 3 (if not already present) into the standard library/header locations. See [here](http://www.fftw.org/download.html) for instructions on building from source.
 
-* On Windows, the precompiled FFTW library is included in the `libs` folder - no need to install it manually.
+* On Windows and Linux, the precompiled FFTW library is included in the `libs` folder - no need to install it manually.
 
 ## Installation
 

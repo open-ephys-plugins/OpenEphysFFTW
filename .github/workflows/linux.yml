@@ -24,7 +24,6 @@ jobs:
         cd plugin-GUI/Build && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
         cd ../Resources/Scripts
         sudo ./install_linux_dependencies.sh
-        sudo apt-get install libfftw3-dev
     - name: build
       run: |
         cd Build
@@ -43,10 +42,11 @@ jobs:
         plugin_api=$(grep -rnw ../../plugin-GUI/Source -e '#define PLUGIN_API_VER' | grep -Eo "[0-9]*" | tail -1)
         tag=$(git describe --tags $(git rev-list --tags --max-count=1))
         new_plugin_ver=$tag-API$plugin_api
-        mkdir plugins 
-        cp -r $build_dir/*.so plugins
+        mkdir shared 
+        cp -r $build_dir/*.so shared
+        cp -r libs/linux/bin/* shared
         zipfile=${package}_${new_plugin_ver}.zip
-        zip -r -X $zipfile plugins
+        zip -r -X $zipfile shared
         user_info="$bintrayUser:$bintrayApiKey"
         curl -T $zipfile --user $user_info https://api.bintray.com/content/$bintrayUser/$repo/$package/$new_plugin_ver/$zipfile
         curl -X POST --user $user_info https://api.bintray.com/content/$bintrayUser/$repo/$package/$new_plugin_ver/publish

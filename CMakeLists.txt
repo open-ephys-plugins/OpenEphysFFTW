@@ -72,12 +72,7 @@ if(MSVC)
 
 	install(TARGETS ${COMMONLIB_NAME} RUNTIME DESTINATION ${GUI_BIN_DIR}/shared)
 
-	# also install dependency DLLs for runtime loading
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/Source/fftw-api/bin/${CMAKE_LIBRARY_ARCHITECTURE}/
-		DESTINATION ${GUI_BIN_DIR}/shared OPTIONAL)
-
-	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Source/fftw-api/)
-	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/Source/fftw-api/libs/${CMAKE_LIBRARY_ARCHITECTURE}/)
+	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs/windows)
 
 elseif(LINUX)
 	target_link_libraries(${COMMONLIB_NAME} GL X11 Xext Xinerama asound dl freetype pthread rt)
@@ -87,6 +82,8 @@ elseif(LINUX)
 	target_compile_options(${COMMONLIB_NAME} PRIVATE -O3) #enable optimization for linux debug
 	
 	install(TARGETS ${COMMONLIB_NAME} LIBRARY DESTINATION ${GUI_BIN_DIR}/shared)
+
+	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs/linux)
 
 elseif(APPLE)
 	set_target_properties(${COMMONLIB_NAME} PROPERTIES BUNDLE FALSE)
@@ -113,10 +110,19 @@ find_path(FFTW_INCLUDE_DIRS fftw3.h)
 
 if (NOT FFTW_LIBRARY)
 	message(FATAL_ERROR "FFTW library not found")
+else()
+	message(STATUS "FFTW library: ${FFTW_LIBRARY}")
 endif()
 
 if (NOT FFTW_INCLUDE_DIRS)
 	message(FATAL_ERROR "FFTW header not found")
+endif()
+
+
+if (MSVC)
+	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/windows/bin/${CMAKE_LIBRARY_ARCHITECTURE}/ DESTINATION ${GUI_BIN_DIR}/shared CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
+elseif(LINUX)
+	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/linux/bin/ DESTINATION ${GUI_BIN_DIR}/shared)
 endif()
 
 target_link_libraries(${COMMONLIB_NAME} ${FFTW_LIBRARY})
