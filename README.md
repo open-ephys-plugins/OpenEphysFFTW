@@ -6,14 +6,18 @@ It is currently used by the [Phase Calculator](https://github.com/tne-lab/phase-
 
 ## Dependency
 
-* On Mac, you need to install FFTW 3 (if not already present) into the standard library/header locations. See [here](http://www.fftw.org/download.html) for instructions on building from source.
-
-* On Windows and Linux, the precompiled FFTW library is included in the `libs` folder - no need to install it manually.
+On Windows, Linux, and Mac, the precompiled FFTW library is included in the `libs` folder - no need to install it manually.
 
 ## Installation
 
-This library should be built outside of the main GUI file tree using CMake. In order to do so, it must be in a sibling directory to plugin-GUI\* and the main GUI must have already been compiled.
+This library should be built outside of the main GUI file tree using CMake. In order to do so, it must be in a sibling directory (e.g. OEPlugins) to `plugin-GUI` and the GUI must have already been compiled.
 
-See `OpenEphysFFTW/CMAKE_README.txt` and/or the wiki page [here](https://open-ephys.atlassian.net/wiki/spaces/OEW/pages/1259110401/Plugin+CMake+Builds) for build instructions.
+See the wiki page [here](https://open-ephys.atlassian.net/wiki/spaces/OEW/pages/1259110401/Plugin+CMake+Builds) for build instructions.
 
 \* If you have the GUI built somewhere else, you can specify its location by setting the environment variable `GUI_BASE_DIR` or defining it when calling cmake with the option `-DGUI_BASE_DIR=<location>`.
+
+#### [MacOS only] Update rpath
+Update the rpath of fftw library linked to `libOpenEphysFFTW.dylib` by running the following commands:
+```
+install_name_tool -change /usr/local/opt/fftw/lib/libfftw3.3.dylib @loader_path/libfftw3.3.dylib path/to/libOpenEphysFFTW.dylib
+```
