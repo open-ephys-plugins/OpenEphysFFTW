@@ -41,7 +41,7 @@ list(APPEND CMAKE_PREFIX_PATH
 
 add_library(${COMMONLIB_NAME} SHARED ${SRC_FILES})
 
-target_compile_features(${COMMONLIB_NAME} PUBLIC cxx_auto_type cxx_generalized_initializers)
+target_compile_features(${COMMONLIB_NAME} PUBLIC cxx_auto_type cxx_generalized_initializers cxx_std_17)
 target_include_directories(${COMMONLIB_NAME} PUBLIC
 	${GUI_BASE_DIR}/JuceLibraryCode
 	${GUI_BASE_DIR}/JuceLibraryCode/modules
@@ -68,7 +68,7 @@ install(FILES ${HEADER_FILES} DESTINATION ${GUI_COMMONLIB_DIR}/include)
 #Libraries and compiler options
 if(MSVC)
 	target_link_libraries(${COMMONLIB_NAME} ${GUI_BIN_DIR}/open-ephys.lib)
-	target_compile_options(${COMMONLIB_NAME} PRIVATE /sdl-)
+	target_compile_options(${COMMONLIB_NAME} PRIVATE /sdl- /W0)
 
 	install(TARGETS ${COMMONLIB_NAME} RUNTIME DESTINATION ${GUI_BIN_DIR}/shared)
 
