@@ -17,14 +17,13 @@ jobs:
     - name: setup
       run: |
         cd ../..
-        git clone https://github.com/open-ephys/plugin-GUI.git
+        git clone https://github.com/open-ephys/plugin-GUI.git --branch main
         cd plugin-GUI/Build && cmake -G "Xcode" -DCMAKE_BUILD_TYPE=Release ..
     - name: build
       run: |
         cd Build
         cmake -G "Xcode" -DCMAKE_BUILD_TYPE=Release ..
         xcodebuild -configuration Release
-        install_name_tool -change /usr/local/opt/fftw/lib/libfftw3.3.dylib @loader_path/libfftw3.3.dylib Release/libOpenEphysFFTW.dylib
 #    - name: test
 #      run: cd build && ctest
     - name: deploy
