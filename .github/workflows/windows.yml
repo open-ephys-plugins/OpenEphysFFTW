@@ -67,7 +67,7 @@ jobs:
         cp -v $build_dir/*.dll shared
         if [ -d "libs" ]
         then
-          cp -v libs/windows/bin/*.dll shared
+          cp -v libs/windows/bin/x64/*.dll shared
         fi
         zipfile=${package}_${new_plugin_ver}.zip
         powershell Compress-Archive -Path "shared" -DestinationPath ${zipfile}
