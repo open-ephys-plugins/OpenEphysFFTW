@@ -52,7 +52,7 @@ jobs:
         build_dir: "Build/Release"
         package: OpenEphysFFTW-mac
       run: |
-        plugin_api=$(grep -rnw ../../plugin-GUI/Source -e '#define PLUGIN_API_VER' | grep -Eo "[0-9]" | tail -1)
+        plugin_api=$(grep -rnw ../../plugin-GUI/Source -e '#define PLUGIN_API_VER' | grep -Eo "[0-9]*" | tail -1)
         tag=$(git describe --tags $(git rev-list --tags --max-count=1))
         new_plugin_ver=$tag-API$plugin_api
 
