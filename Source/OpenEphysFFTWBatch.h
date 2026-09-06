@@ -103,6 +103,68 @@ private:
     FFTWRealToComplexBatchDouble& operator= (const FFTWRealToComplexBatchDouble&) = delete;
 };
 
+/**
+    Reusable single-precision complex-to-real batch.
+
+    Input rows contain transformLength / 2 + 1 complex values in FFTW's
+    Hermitian half-spectrum layout; output rows contain transformLength real
+    values. Like FFTW itself, execute() does not normalize the inverse transform.
+*/
+class OEP_FFTW_API FFTWComplexToRealBatchFloat
+{
+public:
+    FFTWComplexToRealBatchFloat (int transformLength,
+                                 int transformCount,
+                                 unsigned int flags = 0U /* FFTW_MEASURE */);
+    ~FFTWComplexToRealBatchFloat();
+
+    std::complex<float>* getInputPointer (int transformIndex = 0);
+    const std::complex<float>* getInputPointer (int transformIndex = 0) const;
+    float* getOutputPointer (int transformIndex = 0);
+    const float* getOutputPointer (int transformIndex = 0) const;
+
+    int getTransformLength() const noexcept;
+    int getTransformCount() const noexcept;
+    int getBinCount() const noexcept;
+
+    void execute();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl;
+
+    FFTWComplexToRealBatchFloat (const FFTWComplexToRealBatchFloat&) = delete;
+    FFTWComplexToRealBatchFloat& operator= (const FFTWComplexToRealBatchFloat&) = delete;
+};
+
+/** Double-precision counterpart to FFTWComplexToRealBatchFloat. */
+class OEP_FFTW_API FFTWComplexToRealBatchDouble
+{
+public:
+    FFTWComplexToRealBatchDouble (int transformLength,
+                                  int transformCount,
+                                  unsigned int flags = 0U /* FFTW_MEASURE */);
+    ~FFTWComplexToRealBatchDouble();
+
+    std::complex<double>* getInputPointer (int transformIndex = 0);
+    const std::complex<double>* getInputPointer (int transformIndex = 0) const;
+    double* getOutputPointer (int transformIndex = 0);
+    const double* getOutputPointer (int transformIndex = 0) const;
+
+    int getTransformLength() const noexcept;
+    int getTransformCount() const noexcept;
+    int getBinCount() const noexcept;
+
+    void execute();
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl;
+
+    FFTWComplexToRealBatchDouble (const FFTWComplexToRealBatchDouble&) = delete;
+    FFTWComplexToRealBatchDouble& operator= (const FFTWComplexToRealBatchDouble&) = delete;
+};
+
 #undef OEP_FFTW_API
 
 #endif // OEP_FFTW_BATCH_H_INCLUDED

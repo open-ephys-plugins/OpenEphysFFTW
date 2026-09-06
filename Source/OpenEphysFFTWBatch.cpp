@@ -246,3 +246,177 @@ int FFTWRealToComplexBatchDouble::getBinCount() const noexcept
 }
 
 void FFTWRealToComplexBatchDouble::execute() { fftw_execute (impl->plan); }
+
+struct FFTWComplexToRealBatchFloat::Impl
+{
+    Impl (int length, int count, unsigned int flags)
+        : transformLength (length), transformCount (count), binCount (length > 0 ? length / 2 + 1 : 0), input (fftwf_alloc_complex (checkedElementCount (binCount, count))), output (fftwf_alloc_real (checkedElementCount (length, count)))
+    {
+        if (input == nullptr || output == nullptr)
+        {
+            fftwf_free (output);
+            fftwf_free (input);
+            throw std::bad_alloc();
+        }
+
+        const int dimensions[] { transformLength };
+        {
+            const std::lock_guard<std::mutex> lock (plannerMutex);
+            plan = fftwf_plan_many_dft_c2r (1, dimensions, transformCount, input, nullptr, 1, binCount, output, nullptr, 1, transformLength, flags);
+        }
+        if (plan == nullptr)
+        {
+            fftwf_free (output);
+            fftwf_free (input);
+            throw std::runtime_error (
+                "Unable to create FFTW single-precision inverse batch plan");
+        }
+    }
+
+    ~Impl()
+    {
+        if (plan != nullptr)
+        {
+            const std::lock_guard<std::mutex> lock (plannerMutex);
+            fftwf_destroy_plan (plan);
+        }
+        fftwf_free (output);
+        fftwf_free (input);
+    }
+
+    const int transformLength;
+    const int transformCount;
+    const int binCount;
+    fftwf_complex* input = nullptr;
+    float* output = nullptr;
+    fftwf_plan plan = nullptr;
+};
+
+FFTWComplexToRealBatchFloat::FFTWComplexToRealBatchFloat (int transformLength,
+                                                          int transformCount,
+                                                          unsigned int flags)
+    : impl (new Impl (transformLength, transformCount, flags)) {}
+
+FFTWComplexToRealBatchFloat::~FFTWComplexToRealBatchFloat() = default;
+
+std::complex<float>* FFTWComplexToRealBatchFloat::getInputPointer (int transformIndex)
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? reinterpret_cast<std::complex<float>*> (impl->input) + transformIndex * impl->binCount
+               : nullptr;
+}
+
+const std::complex<float>*
+    FFTWComplexToRealBatchFloat::getInputPointer (int transformIndex) const
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? reinterpret_cast<const std::complex<float>*> (impl->input) + transformIndex * impl->binCount
+               : nullptr;
+}
+
+float* FFTWComplexToRealBatchFloat::getOutputPointer (int transformIndex)
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? impl->output + transformIndex * impl->transformLength
+               : nullptr;
+}
+
+const float* FFTWComplexToRealBatchFloat::getOutputPointer (int transformIndex) const
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? impl->output + transformIndex * impl->transformLength
+               : nullptr;
+}
+
+int FFTWComplexToRealBatchFloat::getTransformLength() const noexcept { return impl->transformLength; }
+int FFTWComplexToRealBatchFloat::getTransformCount() const noexcept { return impl->transformCount; }
+int FFTWComplexToRealBatchFloat::getBinCount() const noexcept { return impl->binCount; }
+
+void FFTWComplexToRealBatchFloat::execute() { fftwf_execute (impl->plan); }
+
+struct FFTWComplexToRealBatchDouble::Impl
+{
+    Impl (int length, int count, unsigned int flags)
+        : transformLength (length), transformCount (count), binCount (length > 0 ? length / 2 + 1 : 0), input (fftw_alloc_complex (checkedElementCount (binCount, count))), output (fftw_alloc_real (checkedElementCount (length, count)))
+    {
+        if (input == nullptr || output == nullptr)
+        {
+            fftw_free (output);
+            fftw_free (input);
+            throw std::bad_alloc();
+        }
+
+        const int dimensions[] { transformLength };
+        {
+            const std::lock_guard<std::mutex> lock (plannerMutex);
+            plan = fftw_plan_many_dft_c2r (1, dimensions, transformCount, input, nullptr, 1, binCount, output, nullptr, 1, transformLength, flags);
+        }
+        if (plan == nullptr)
+        {
+            fftw_free (output);
+            fftw_free (input);
+            throw std::runtime_error (
+                "Unable to create FFTW double-precision inverse batch plan");
+        }
+    }
+
+    ~Impl()
+    {
+        if (plan != nullptr)
+        {
+            const std::lock_guard<std::mutex> lock (plannerMutex);
+            fftw_destroy_plan (plan);
+        }
+        fftw_free (output);
+        fftw_free (input);
+    }
+
+    const int transformLength;
+    const int transformCount;
+    const int binCount;
+    fftw_complex* input = nullptr;
+    double* output = nullptr;
+    fftw_plan plan = nullptr;
+};
+
+FFTWComplexToRealBatchDouble::FFTWComplexToRealBatchDouble (int transformLength,
+                                                            int transformCount,
+                                                            unsigned int flags)
+    : impl (new Impl (transformLength, transformCount, flags)) {}
+
+FFTWComplexToRealBatchDouble::~FFTWComplexToRealBatchDouble() = default;
+
+std::complex<double>* FFTWComplexToRealBatchDouble::getInputPointer (int transformIndex)
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? reinterpret_cast<std::complex<double>*> (impl->input) + transformIndex * impl->binCount
+               : nullptr;
+}
+
+const std::complex<double>*
+    FFTWComplexToRealBatchDouble::getInputPointer (int transformIndex) const
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? reinterpret_cast<const std::complex<double>*> (impl->input) + transformIndex * impl->binCount
+               : nullptr;
+}
+
+double* FFTWComplexToRealBatchDouble::getOutputPointer (int transformIndex)
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? impl->output + transformIndex * impl->transformLength
+               : nullptr;
+}
+
+const double* FFTWComplexToRealBatchDouble::getOutputPointer (int transformIndex) const
+{
+    return validTransformIndex (transformIndex, impl->transformCount)
+               ? impl->output + transformIndex * impl->transformLength
+               : nullptr;
+}
+
+int FFTWComplexToRealBatchDouble::getTransformLength() const noexcept { return impl->transformLength; }
+int FFTWComplexToRealBatchDouble::getTransformCount() const noexcept { return impl->transformCount; }
+int FFTWComplexToRealBatchDouble::getBinCount() const noexcept { return impl->binCount; }
+
+void FFTWComplexToRealBatchDouble::execute() { fftw_execute (impl->plan); }
