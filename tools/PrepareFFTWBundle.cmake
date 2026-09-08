@@ -66,6 +66,9 @@ if(PLATFORM STREQUAL "linux")
                   "${BUNDLE_DIR}/bin/libfftw3${precision}.so.3")
     endforeach()
     set(license_root "${package_root}")
+    string(CONCAT binary_provenance
+        "linux-64/fftw-3.3.11-nompi_h3b011a4_100.conda\n"
+        "SHA-256: 6fd5d681fba20adaca771f138ac52dbf0a52e0dc2ac31b9ce7406068d102a9a7\n")
 elseif(PLATFORM STREQUAL "windows")
     download_conda_package(
         windows win-64 fftw-3.3.11-nompi_h6877c38_100.conda
@@ -79,6 +82,9 @@ elseif(PLATFORM STREQUAL "windows")
                   "${BUNDLE_DIR}/bin/fftw3${precision}.dll")
     endforeach()
     set(license_root "${package_root}")
+    string(CONCAT binary_provenance
+        "win-64/fftw-3.3.11-nompi_h6877c38_100.conda\n"
+        "SHA-256: bee7a80261a6344597125ecf4af4405d841c81b46461e3327f7fe6a148652426\n")
 elseif(PLATFORM STREQUAL "macos")
     download_conda_package(
         macos_arm osx-arm64 fftw-3.3.11-nompi_haf1500d_100.conda
@@ -105,6 +111,12 @@ elseif(PLATFORM STREQUAL "macos")
                   "${BUNDLE_DIR}/lib/libfftw3${precision}.dylib")
     endforeach()
     set(license_root "${arm_root}")
+    string(CONCAT binary_provenance
+        "osx-arm64/fftw-3.3.11-nompi_haf1500d_100.conda\n"
+        "SHA-256: fc6c507d7c68db156d6c8c5f6a79ca6b34c2a4c0c6222d8d4ecd0e4b97d3fd5e\n"
+        "osx-64/fftw-3.3.11-nompi_h54214ab_100.conda\n"
+        "SHA-256: c234b8f1be5b630236675a006172edd768ca2685fbf0713ec007f3d373f5ee27\n"
+        "The two architecture slices were combined with Apple's lipo tool.\n")
 endif()
 
 copy_file("${license_root}/info/licenses/COPYING"
@@ -126,8 +138,10 @@ file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
     "FFTW ${FFTW_VERSION}\n"
     "Source: https://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz\n"
     "Source SHA-256: 5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1\n"
-    "Binary source: conda-forge/fftw\n"
-    "The exact conda build recipe is included in this directory.\n")
+    "Binary source: https://conda.anaconda.org/conda-forge/\n"
+    "${binary_provenance}"
+    "The exact conda build recipe and its BSD-3-Clause license are included in this directory.\n"
+    "Neither conda-forge nor its contributors endorse this redistribution.\n")
 
 set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-${PLATFORM}")
 if(PLATFORM STREQUAL "macos")

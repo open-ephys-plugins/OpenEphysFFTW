@@ -12,6 +12,11 @@ hash-pinned conda-forge packages; FFTW's license, provenance, and exact build
 recipe accompany every bundle. The corresponding FFTW source is published with
 the dependency release.
 
+FFTW is redistributed under GPL-2.0-or-later. Conda-forge's recipe scripts are
+redistributed under BSD-3-Clause; their notice and disclaimer remain alongside
+the recipes. The bundles identify conda-forge only as their build provenance
+and do not imply endorsement.
+
 Run the packaging workflow without its publishing option to validate all three
 bundles. Publishing is a deliberate, manual operation because dependency
 release tags are immutable inputs to plugin builds.
