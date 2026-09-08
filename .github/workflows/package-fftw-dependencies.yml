@@ -1,6 +1,13 @@
 name: package FFTW dependencies
 
 on:
+  push:
+    branches:
+      - "**"
+    paths:
+      - ".github/workflows/package-fftw-dependencies.yml"
+      - "tools/PrepareFFTWBundle.cmake"
+      - "DependencyTests/**"
   workflow_dispatch:
     inputs:
       publish_release:
