@@ -42,10 +42,21 @@ jobs:
           -P tools/PrepareFFTWBundle.cmake
 
       - name: Configure smoke test
+        if: matrix.platform != 'windows'
         run: >-
           cmake
           -S DependencyTests
           -B ${{ runner.temp }}/fftw-smoke-build
+          -DFFTW_ROOT=${{ runner.temp }}/fftw-bundles/${{ matrix.bundle_dir }}
+
+      - name: Configure smoke test with MSVC
+        if: matrix.platform == 'windows'
+        run: >-
+          cmake
+          -S DependencyTests
+          -B ${{ runner.temp }}/fftw-smoke-build
+          -G "Visual Studio 17 2022"
+          -A x64
           -DFFTW_ROOT=${{ runner.temp }}/fftw-bundles/${{ matrix.bundle_dir }}
 
       - name: Build smoke test
