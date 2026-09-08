@@ -27,6 +27,11 @@ The bundles intentionally omit the separate long-double, MPI, OpenMP, and
 threaded FFTW libraries. The `fftw3` and `fftw3f` libraries themselves are not
 modified or symbol-stripped.
 
+See [FFTW Dependency Releases](DEPENDENCY_RELEASES.md) for the two-PR update and
+publication procedure. The packaging PR must merge before its dependency tag
+is created; a separate consumption PR removes the old Git-tracked binaries only
+after the immutable release exists.
+
 ## Installation
 
 This library should be built outside of the main GUI file tree using CMake. In order to do so, it must be in a sibling directory (e.g. OEPlugins) to `plugin-GUI` and the GUI must have already been compiled.

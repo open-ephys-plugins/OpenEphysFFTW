@@ -125,7 +125,8 @@ jobs:
         working-directory: release-assets
         run: |
           curl --fail --location --output fftw-3.3.11.tar.gz https://www.fftw.org/fftw-3.3.11.tar.gz
-          echo "5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1  fftw-3.3.11.tar.gz" | sha256sum --check
+          echo "5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1  fftw-3.3.11.tar.gz" > fftw-3.3.11.tar.gz.sha256
+          sha256sum --check fftw-3.3.11.tar.gz.sha256
 
       - name: Stage draft dependency release
         env:
