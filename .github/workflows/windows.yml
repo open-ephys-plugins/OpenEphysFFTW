@@ -65,11 +65,12 @@ jobs:
         new_plugin_ver=$tag-API$plugin_api
         mkdir shared
         cp -v $build_dir/*.dll shared
-        if [ -d "libs" ]
-        then
-          cp -v libs/windows/bin/x64/*.dll shared
-        fi
+        fftw_runtime_dir=$(cat Build/fftw-runtime-path.txt)
+        cp -v "$fftw_runtime_dir"/*.dll shared
+        fftw_notices_dir=$(cat Build/fftw-notices-path.txt)
+        mkdir -p licenses
+        cp -r "$fftw_notices_dir" licenses/fftw
         zipfile=${package}_${new_plugin_ver}.zip
-        powershell Compress-Archive -Path "shared" -DestinationPath ${zipfile}
+        powershell Compress-Archive -Path "shared","licenses" -DestinationPath ${zipfile}
         curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/windows/$zipfile"
       shell: bash

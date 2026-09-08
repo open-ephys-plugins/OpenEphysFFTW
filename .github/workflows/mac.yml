@@ -61,7 +61,11 @@ jobs:
 
         mkdir shared
         cp -r $build_dir/*.dylib shared
-        cp -r libs/macos/bin/* shared
+        fftw_runtime_dir=$(cat Build/fftw-runtime-path.txt)
+        cp -r "$fftw_runtime_dir"/* shared
+        fftw_notices_dir=$(cat Build/fftw-notices-path.txt)
+        mkdir -p licenses
+        cp -r "$fftw_notices_dir" licenses/fftw
 
         # Turn our base64-encoded certificate back to a regular .p12 file
         printf '%s' "$MACOS_CERTIFICATE" | base64 --decode > certificate.p12
@@ -75,10 +79,11 @@ jobs:
         security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_CI_KEYCHAIN_PWD build.keychain
         /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libOpenEphysFFTW.dylib --deep --strict --timestamp --options=runtime
-        /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libfftw3.3.6.9.dylib --deep --strict --timestamp --options=runtime
+        /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libfftw3.3.dylib --deep --strict --timestamp --options=runtime
+        /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libfftw3f.3.dylib --deep --strict --timestamp --options=runtime
 
         /usr/bin/codesign -dv --verbose=4 shared/libOpenEphysFFTW.dylib
 
         zipfile=${package}_${new_plugin_ver}.zip
-        zip -r -X $zipfile shared
+        zip -r -X $zipfile shared licenses
         curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/mac/$zipfile"

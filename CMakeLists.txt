@@ -36,6 +36,9 @@ file(GLOB_RECURSE HEADER_FILES LIST_DIRECTORIES false "${SOURCE_PATH}/*.h")
 list(APPEND SRC_FILES ${HEADER_FILES})
 set(GUI_COMMONLIB_DIR ${GUI_BASE_DIR}/installed_libs)
 
+include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/AcquireFFTW.cmake)
+openephys_acquire_fftw(FFTW_BUNDLE_ROOT)
+
 list(APPEND CMAKE_PREFIX_PATH 
 	${GUI_COMMONLIB_DIR}
 	${GUI_COMMONLIB_DIR}/$<CONFIG>
@@ -67,6 +70,8 @@ install(TARGETS ${COMMONLIB_NAME}
 	RUNTIME DESTINATION ${GUI_COMMONLIB_DIR}/$<CONFIG>/bin/${CMAKE_LIBRARY_ARCHITECTURE} # .dll files
 	)
 install(FILES ${HEADER_FILES} DESTINATION ${GUI_COMMONLIB_DIR}/include)
+install(DIRECTORY ${FFTW_BUNDLE_ROOT}/share/fftw
+	DESTINATION ${GUI_COMMONLIB_DIR}/share)
 
 #Libraries and compiler options
 if(MSVC)
@@ -74,8 +79,6 @@ if(MSVC)
 	target_compile_options(${COMMONLIB_NAME} PRIVATE /sdl- /W0)
 
 	install(TARGETS ${COMMONLIB_NAME} RUNTIME DESTINATION ${GUI_BIN_DIR}/shared)
-
-	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs/windows)
 
 elseif(LINUX)
 	target_link_libraries(${COMMONLIB_NAME} GL X11 Xext Xinerama asound dl freetype pthread rt)
@@ -86,8 +89,6 @@ elseif(LINUX)
 	
 	install(TARGETS ${COMMONLIB_NAME} LIBRARY DESTINATION ${GUI_BIN_DIR}/shared)
 
-	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs/linux)
-
 elseif(APPLE)
 	set_target_properties(${COMMONLIB_NAME} PROPERTIES BUNDLE FALSE)
 	set_property(TARGET ${COMMONLIB_NAME} APPEND_STRING PROPERTY LINK_FLAGS
@@ -97,7 +98,6 @@ elseif(APPLE)
 		XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
 
 	install(TARGETS ${COMMONLIB_NAME} DESTINATION $ENV{HOME}/Library/Application\ Support/open-ephys/shared-api10)
-	list(APPEND CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/libs/macos)
 endif()
 
 #create filters for vs and xcode
@@ -111,13 +111,26 @@ endforeach()
 
 #additional libraries
 
-find_library(FFTW_LIBRARY NAMES libfftw3-3 fftw3 fftw3-3)
-find_path(FFTW_INCLUDE_DIRS fftw3.h)
+unset(FFTW_LIBRARY CACHE)
+unset(FFTWF_LIBRARY CACHE)
+unset(FFTW_INCLUDE_DIRS CACHE)
+find_library(FFTW_LIBRARY NAMES libfftw3-3 fftw3 fftw3-3
+	PATHS "${FFTW_BUNDLE_ROOT}/lib" NO_DEFAULT_PATH)
+find_library(FFTWF_LIBRARY NAMES libfftw3f-3 fftw3f fftw3f-3
+	PATHS "${FFTW_BUNDLE_ROOT}/lib" NO_DEFAULT_PATH)
+find_path(FFTW_INCLUDE_DIRS fftw3.h
+	PATHS "${FFTW_BUNDLE_ROOT}/include" NO_DEFAULT_PATH)
 
 if (NOT FFTW_LIBRARY)
 	message(FATAL_ERROR "FFTW library not found")
 else()
 	message(STATUS "FFTW library: ${FFTW_LIBRARY}")
+endif()
+
+if (NOT FFTWF_LIBRARY)
+	message(FATAL_ERROR "Single-precision FFTW library not found")
+else()
+	message(STATUS "Single-precision FFTW library: ${FFTWF_LIBRARY}")
 endif()
 
 if (NOT FFTW_INCLUDE_DIRS)
@@ -126,12 +139,15 @@ endif()
 
 
 if (MSVC)
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/windows/bin/${CMAKE_LIBRARY_ARCHITECTURE}/ DESTINATION ${GUI_BIN_DIR}/shared CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
+	install(DIRECTORY ${FFTW_BUNDLE_ROOT}/bin/ DESTINATION ${GUI_BIN_DIR}/shared CONFIGURATIONS ${CMAKE_CONFIGURATION_TYPES})
 elseif(LINUX)
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/linux/bin/ DESTINATION ${GUI_BIN_DIR}/shared)
+	install(DIRECTORY ${FFTW_BUNDLE_ROOT}/bin/ DESTINATION ${GUI_BIN_DIR}/shared)
 elseif(APPLE)
-	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/macos/bin/ DESTINATION $ENV{HOME}/Library/Application\ Support/open-ephys/shared-api10)
+	install(DIRECTORY ${FFTW_BUNDLE_ROOT}/bin/ DESTINATION $ENV{HOME}/Library/Application\ Support/open-ephys/shared-api10)
 endif()
 
-target_link_libraries(${COMMONLIB_NAME} ${FFTW_LIBRARY})
+file(WRITE "${CMAKE_BINARY_DIR}/fftw-runtime-path.txt" "${FFTW_BUNDLE_ROOT}/bin\n")
+file(WRITE "${CMAKE_BINARY_DIR}/fftw-notices-path.txt" "${FFTW_BUNDLE_ROOT}/share/fftw\n")
+
+target_link_libraries(${COMMONLIB_NAME} ${FFTW_LIBRARY} ${FFTWF_LIBRARY})
 target_include_directories(${COMMONLIB_NAME} PRIVATE ${FFTW_INCLUDE_DIRS})

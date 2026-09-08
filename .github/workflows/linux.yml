@@ -56,7 +56,11 @@ jobs:
         new_plugin_ver=$tag-API$plugin_api
         mkdir shared 
         cp -r $build_dir/*.so shared
-        cp -r libs/linux/bin/* shared
+        fftw_runtime_dir=$(cat Build/fftw-runtime-path.txt)
+        cp -r "$fftw_runtime_dir"/* shared
+        fftw_notices_dir=$(cat Build/fftw-notices-path.txt)
+        mkdir -p licenses
+        cp -r "$fftw_notices_dir" licenses/fftw
         zipfile=${package}_${new_plugin_ver}.zip
-        zip -r -X $zipfile shared
+        zip -r -X $zipfile shared licenses
         curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"

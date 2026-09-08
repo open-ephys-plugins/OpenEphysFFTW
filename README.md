@@ -36,4 +36,16 @@ after the immutable release exists.
 
 This library should be built outside of the main GUI file tree using CMake. In order to do so, it must be in a sibling directory (e.g. OEPlugins) to `plugin-GUI` and the GUI must have already been compiled.
 
+By default, CMake downloads the platform bundle from the immutable
+`fftw-dependencies-3.3.11-1` release and verifies its published checksum. For
+offline builds, set `FFTW_ROOT` to an extracted bundle:
+
+```bash
+cmake -S . -B Build -DFFTW_ROOT=/path/to/fftw-3.3.11-linux-x86_64
+```
+
+To exercise the normal extraction path offline, set `FFTW_ARCHIVE` to a local
+archive and place its release checksum sidecar at `<archive>.sha256`, or set
+`FFTW_CHECKSUM_FILE` explicitly.
+
 See the wiki page [here](https://open-ephys.github.io/gui-docs/Developer-Guide/Compiling-plugins.html) for build instructions.
