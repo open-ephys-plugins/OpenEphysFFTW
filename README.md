@@ -17,9 +17,11 @@ redistributed under BSD-3-Clause; their notice and disclaimer remain alongside
 the recipes. The bundles identify conda-forge only as their build provenance
 and do not imply endorsement.
 
-Run the packaging workflow without its publishing option to validate all three
-bundles. Publishing is a deliberate, manual operation because dependency
-release tags are immutable inputs to plugin builds.
+The packaging workflow validates all three bundles. A dependency tag stages a
+draft release containing the bundles, checksum sidecars, and corresponding
+source. Enable GitHub release immutability for this repository before
+publishing the draft. Normal builds can then verify each archive against its
+immutable checksum sidecar without copying generated hashes back into Git.
 
 The bundles intentionally omit the separate long-double, MPI, OpenMP, and
 threaded FFTW libraries. The `fftw3` and `fftw3f` libraries themselves are not

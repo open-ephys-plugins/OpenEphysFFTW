@@ -4,14 +4,16 @@ on:
   push:
     branches:
       - "**"
+    tags:
+      - fftw-dependencies-3.3.11-1
     paths:
       - ".github/workflows/package-fftw-dependencies.yml"
       - "tools/PrepareFFTWBundle.cmake"
       - "DependencyTests/**"
   workflow_dispatch:
     inputs:
-      publish_release:
-        description: Publish the verified bundles as an immutable dependency release
+      stage_release:
+        description: Stage the verified bundles as a draft dependency release
         required: true
         type: boolean
         default: false
@@ -83,9 +85,14 @@ jobs:
       - name: Inspect macOS deployment targets
         if: matrix.platform == 'macos'
         run: |
-          lipo -archs ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3.3.dylib
-          xcrun vtool -show-build ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3.3.dylib
-          xcrun vtool -show-build ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3f.3.dylib
+          for library in libfftw3.3.dylib libfftw3f.3.dylib; do
+            path=${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/$library
+            architectures=$(lipo -archs "$path")
+            metadata=$(xcrun vtool -show-build "$path")
+            printf '%s\n' "$architectures" "$metadata"
+            test "$architectures" = "x86_64 arm64"
+            test "$(printf '%s\n' "$metadata" | grep -c 'minos 11.0')" -eq 2
+          done
 
       - name: Upload bundle and checksum
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -97,8 +104,10 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish:
-    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+  stage-release:
+    if: >-
+      (github.event_name == 'workflow_dispatch' && inputs.stage_release) ||
+      github.ref == 'refs/tags/fftw-dependencies-3.3.11-1'
     needs: package
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -118,7 +127,7 @@ jobs:
           curl --fail --location --output fftw-3.3.11.tar.gz https://www.fftw.org/fftw-3.3.11.tar.gz
           echo "5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1  fftw-3.3.11.tar.gz" | sha256sum --check
 
-      - name: Publish dependency release
+      - name: Stage draft dependency release
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
@@ -126,5 +135,6 @@ jobs:
           release-assets/*
           --repo ${{ github.repository }}
           --title "FFTW dependency bundles 3.3.11-1"
-          --notes "Verified FFTW 3.3.11 shared-library bundles for Open Ephys builds. Each bundle contains the upstream license, provenance, and exact conda-forge build recipe. The corresponding FFTW source archive is attached to this release."
-          --target ${{ github.sha }}
+          --notes "Verified FFTW 3.3.11 shared-library bundles for Open Ephys builds. Each bundle contains the upstream license, provenance, and exact conda-forge build recipe. The corresponding FFTW source archive is attached to this release. Enable release immutability for the repository before publishing this draft."
+          --draft
+          --verify-tag
