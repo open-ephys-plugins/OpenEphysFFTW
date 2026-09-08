@@ -1,0 +1,148 @@
+cmake_minimum_required(VERSION 3.24)
+
+if(NOT DEFINED PLATFORM OR NOT PLATFORM MATCHES "^(linux|macos|windows)$")
+    message(FATAL_ERROR "Set PLATFORM to linux, macos, or windows")
+endif()
+if(NOT DEFINED OUTPUT_DIR)
+    message(FATAL_ERROR "Set OUTPUT_DIR to the directory for the completed bundle")
+endif()
+
+set(FFTW_VERSION 3.3.11)
+set(WORK_DIR "${OUTPUT_DIR}/.fftw-package-work-${PLATFORM}")
+set(BUNDLE_DIR "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-${PLATFORM}-x86_64")
+if(PLATFORM STREQUAL "macos")
+    set(BUNDLE_DIR "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-macos-universal")
+endif()
+
+file(REMOVE_RECURSE "${WORK_DIR}" "${BUNDLE_DIR}")
+file(MAKE_DIRECTORY "${WORK_DIR}" "${BUNDLE_DIR}/include"
+                    "${BUNDLE_DIR}/lib" "${BUNDLE_DIR}/bin"
+                    "${BUNDLE_DIR}/share/fftw")
+
+function(download_conda_package LABEL SUBDIR FILENAME SHA256 OUT_ROOT)
+    set(package "${WORK_DIR}/${FILENAME}")
+    set(container "${WORK_DIR}/${LABEL}-container")
+    set(root "${WORK_DIR}/${LABEL}-root")
+
+    file(DOWNLOAD
+        "https://conda.anaconda.org/conda-forge/${SUBDIR}/${FILENAME}"
+        "${package}"
+        EXPECTED_HASH "SHA256=${SHA256}"
+        TLS_VERIFY ON
+        SHOW_PROGRESS)
+    file(MAKE_DIRECTORY "${container}" "${root}")
+    file(ARCHIVE_EXTRACT INPUT "${package}" DESTINATION "${container}")
+    file(GLOB payload "${container}/pkg-*.tar.zst")
+    file(GLOB package_info "${container}/info-*.tar.zst")
+    list(LENGTH payload payload_count)
+    list(LENGTH package_info info_count)
+    if(NOT payload_count EQUAL 1 OR NOT info_count EQUAL 1)
+        message(FATAL_ERROR "Unexpected ${LABEL} .conda package structure")
+    endif()
+    file(ARCHIVE_EXTRACT INPUT "${payload}" DESTINATION "${root}")
+    file(ARCHIVE_EXTRACT INPUT "${package_info}" DESTINATION "${root}")
+    set(${OUT_ROOT} "${root}" PARENT_SCOPE)
+endfunction()
+
+function(copy_file SOURCE DESTINATION)
+    if(NOT EXISTS "${SOURCE}")
+        message(FATAL_ERROR "Required package file is missing: ${SOURCE}")
+    endif()
+    get_filename_component(destination_dir "${DESTINATION}" DIRECTORY)
+    file(MAKE_DIRECTORY "${destination_dir}")
+    configure_file("${SOURCE}" "${DESTINATION}" COPYONLY)
+endfunction()
+
+if(PLATFORM STREQUAL "linux")
+    download_conda_package(
+        linux linux-64 fftw-3.3.11-nompi_h3b011a4_100.conda
+        6fd5d681fba20adaca771f138ac52dbf0a52e0dc2ac31b9ce7406068d102a9a7
+        package_root)
+    copy_file("${package_root}/include/fftw3.h" "${BUNDLE_DIR}/include/fftw3.h")
+    foreach(precision IN ITEMS "" f)
+        copy_file("${package_root}/lib/libfftw3${precision}.so.3.7.11"
+                  "${BUNDLE_DIR}/lib/libfftw3${precision}.so")
+        copy_file("${package_root}/lib/libfftw3${precision}.so.3.7.11"
+                  "${BUNDLE_DIR}/bin/libfftw3${precision}.so.3")
+    endforeach()
+    set(license_root "${package_root}")
+elseif(PLATFORM STREQUAL "windows")
+    download_conda_package(
+        windows win-64 fftw-3.3.11-nompi_h6877c38_100.conda
+        bee7a80261a6344597125ecf4af4405d841c81b46461e3327f7fe6a148652426
+        package_root)
+    copy_file("${package_root}/Library/include/fftw3.h" "${BUNDLE_DIR}/include/fftw3.h")
+    foreach(precision IN ITEMS "" f)
+        copy_file("${package_root}/Library/lib/fftw3${precision}.lib"
+                  "${BUNDLE_DIR}/lib/fftw3${precision}.lib")
+        copy_file("${package_root}/Library/bin/fftw3${precision}.dll"
+                  "${BUNDLE_DIR}/bin/fftw3${precision}.dll")
+    endforeach()
+    set(license_root "${package_root}")
+elseif(PLATFORM STREQUAL "macos")
+    download_conda_package(
+        macos_arm osx-arm64 fftw-3.3.11-nompi_haf1500d_100.conda
+        fc6c507d7c68db156d6c8c5f6a79ca6b34c2a4c0c6222d8d4ecd0e4b97d3fd5e
+        arm_root)
+    download_conda_package(
+        macos_x64 osx-64 fftw-3.3.11-nompi_h54214ab_100.conda
+        c234b8f1be5b630236675a006172edd768ca2685fbf0713ec007f3d373f5ee27
+        x64_root)
+    copy_file("${arm_root}/include/fftw3.h" "${BUNDLE_DIR}/include/fftw3.h")
+    foreach(precision IN ITEMS "" f)
+        set(runtime_name "libfftw3${precision}.3.dylib")
+        execute_process(
+            COMMAND lipo -create
+                "${arm_root}/lib/${runtime_name}"
+                "${x64_root}/lib/${runtime_name}"
+                -output "${BUNDLE_DIR}/bin/${runtime_name}"
+            COMMAND_ERROR_IS_FATAL ANY)
+        execute_process(
+            COMMAND install_name_tool -id "@rpath/${runtime_name}"
+                "${BUNDLE_DIR}/bin/${runtime_name}"
+            COMMAND_ERROR_IS_FATAL ANY)
+        copy_file("${BUNDLE_DIR}/bin/${runtime_name}"
+                  "${BUNDLE_DIR}/lib/libfftw3${precision}.dylib")
+    endforeach()
+    set(license_root "${arm_root}")
+endif()
+
+copy_file("${license_root}/info/licenses/COPYING"
+          "${BUNDLE_DIR}/share/fftw/COPYING")
+if(PLATFORM STREQUAL "macos")
+    file(COPY "${arm_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
+    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
+                "${BUNDLE_DIR}/share/fftw/conda-recipe-osx-arm64")
+    file(COPY "${x64_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
+    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
+                "${BUNDLE_DIR}/share/fftw/conda-recipe-osx-64")
+else()
+    file(COPY "${package_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
+    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
+                "${BUNDLE_DIR}/share/fftw/conda-recipe")
+endif()
+
+file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
+    "FFTW ${FFTW_VERSION}\n"
+    "Source: https://www.fftw.org/fftw-${FFTW_VERSION}.tar.gz\n"
+    "Source SHA-256: 5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1\n"
+    "Binary source: conda-forge/fftw\n"
+    "The exact conda build recipe is included in this directory.\n")
+
+set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-${PLATFORM}")
+if(PLATFORM STREQUAL "macos")
+    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-macos-universal")
+elseif(PLATFORM STREQUAL "linux")
+    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-linux-x86_64")
+elseif(PLATFORM STREQUAL "windows")
+    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-windows-x86_64")
+endif()
+execute_process(
+    COMMAND "${CMAKE_COMMAND}" -E tar cfvz "${archive}.tar.gz" .
+    WORKING_DIRECTORY "${BUNDLE_DIR}"
+    COMMAND_ERROR_IS_FATAL ANY)
+file(SHA256 "${archive}.tar.gz" archive_sha256)
+get_filename_component(archive_name "${archive}.tar.gz" NAME)
+file(WRITE "${archive}.tar.gz.sha256" "${archive_sha256}  ${archive_name}\n")
+file(REMOVE_RECURSE "${WORK_DIR}")
+message(STATUS "Created ${archive}.tar.gz (${archive_sha256})")

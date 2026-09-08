@@ -1,0 +1,103 @@
+name: package FFTW dependencies
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Publish the verified bundles as an immutable dependency release
+        required: true
+        type: boolean
+        default: false
+  pull_request:
+    paths:
+      - ".github/workflows/package-fftw-dependencies.yml"
+      - "tools/PrepareFFTWBundle.cmake"
+      - "DependencyTests/**"
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+            bundle_dir: fftw-3.3.11-linux-x86_64
+          - os: macos-15
+            platform: macos
+            bundle_dir: fftw-3.3.11-macos-universal
+          - os: windows-2022
+            platform: windows
+            bundle_dir: fftw-3.3.11-windows-x86_64
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare verified dependency bundle
+        run: >-
+          cmake
+          -DPLATFORM=${{ matrix.platform }}
+          -DOUTPUT_DIR=${{ runner.temp }}/fftw-bundles
+          -P tools/PrepareFFTWBundle.cmake
+
+      - name: Configure smoke test
+        run: >-
+          cmake
+          -S DependencyTests
+          -B ${{ runner.temp }}/fftw-smoke-build
+          -DFFTW_ROOT=${{ runner.temp }}/fftw-bundles/${{ matrix.bundle_dir }}
+
+      - name: Build smoke test
+        run: cmake --build ${{ runner.temp }}/fftw-smoke-build --config Release
+
+      - name: Run smoke test
+        run: ctest --test-dir ${{ runner.temp }}/fftw-smoke-build -C Release --output-on-failure
+
+      - name: Inspect macOS deployment targets
+        if: matrix.platform == 'macos'
+        run: |
+          lipo -archs ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3.3.dylib
+          xcrun vtool -show-build ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3.3.dylib
+          xcrun vtool -show-build ${{ runner.temp }}/fftw-bundles/fftw-3.3.11-macos-universal/bin/libfftw3f.3.dylib
+
+      - name: Upload bundle and checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: fftw-3.3.11-${{ matrix.platform }}
+          path: |
+            ${{ runner.temp }}/fftw-bundles/*.tar.gz
+            ${{ runner.temp }}/fftw-bundles/*.sha256
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_release
+    needs: package
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: fftw-3.3.11-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Add corresponding FFTW source
+        working-directory: release-assets
+        run: |
+          curl --fail --location --output fftw-3.3.11.tar.gz https://www.fftw.org/fftw-3.3.11.tar.gz
+          echo "5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1  fftw-3.3.11.tar.gz" | sha256sum --check
+
+      - name: Publish dependency release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create fftw-dependencies-3.3.11-1
+          release-assets/*
+          --repo ${{ github.repository }}
+          --title "FFTW dependency bundles 3.3.11-1"
+          --notes "Verified FFTW 3.3.11 shared-library bundles for Open Ephys builds. Each bundle contains the upstream license, provenance, and exact conda-forge build recipe. The corresponding FFTW source archive is attached to this release."
+          --target ${{ github.sha }}
