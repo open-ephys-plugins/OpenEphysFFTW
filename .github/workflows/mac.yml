@@ -75,7 +75,9 @@ jobs:
         security import certificate.p12 -k build.keychain -P $MACOS_CERTIFICATE_PWD -T /usr/bin/codesign
         security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k $MACOS_CI_KEYCHAIN_PWD build.keychain
         /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libOpenEphysFFTW.dylib --deep --strict --timestamp --options=runtime
-        /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v shared/libfftw3.3.6.9.dylib --deep --strict --timestamp --options=runtime
+        for dependency in shared/libfftw3*.dylib; do
+          /usr/bin/codesign --force -s "$MACOS_CERTIFICATE_NAME" -v "$dependency" --deep --strict --timestamp --options=runtime
+        done
 
         /usr/bin/codesign -dv --verbose=4 shared/libOpenEphysFFTW.dylib
 

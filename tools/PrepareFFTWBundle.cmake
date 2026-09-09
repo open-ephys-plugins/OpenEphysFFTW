@@ -4,19 +4,25 @@ if(NOT DEFINED PLATFORM OR NOT PLATFORM MATCHES "^(linux|macos|windows)$")
     message(FATAL_ERROR "Set PLATFORM to linux, macos, or windows")
 endif()
 if(NOT DEFINED OUTPUT_DIR)
-    message(FATAL_ERROR "Set OUTPUT_DIR to the directory for the completed bundle")
+    message(FATAL_ERROR "Set OUTPUT_DIR to the libs directory the bundle should be staged into")
 endif()
 
 set(FFTW_VERSION 3.3.11)
 set(WORK_DIR "${OUTPUT_DIR}/.fftw-package-work-${PLATFORM}")
-set(BUNDLE_DIR "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-${PLATFORM}-x86_64")
-if(PLATFORM STREQUAL "macos")
-    set(BUNDLE_DIR "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-macos-universal")
+set(BUNDLE_DIR "${OUTPUT_DIR}/${PLATFORM}")
+# Only the x86_64/universal binaries are fetched, so Windows stages under an
+# arch subfolder to match the existing libs/windows/{lib,bin}/x64 layout.
+set(LIB_SUBDIR "lib")
+set(BIN_SUBDIR "bin")
+if(PLATFORM STREQUAL "windows")
+    set(LIB_SUBDIR "lib/x64")
+    set(BIN_SUBDIR "bin/x64")
 endif()
 
-file(REMOVE_RECURSE "${WORK_DIR}" "${BUNDLE_DIR}")
+file(REMOVE_RECURSE "${WORK_DIR}" "${BUNDLE_DIR}/include" "${BUNDLE_DIR}/${LIB_SUBDIR}"
+                    "${BUNDLE_DIR}/${BIN_SUBDIR}" "${BUNDLE_DIR}/share/fftw")
 file(MAKE_DIRECTORY "${WORK_DIR}" "${BUNDLE_DIR}/include"
-                    "${BUNDLE_DIR}/lib" "${BUNDLE_DIR}/bin"
+                    "${BUNDLE_DIR}/${LIB_SUBDIR}" "${BUNDLE_DIR}/${BIN_SUBDIR}"
                     "${BUNDLE_DIR}/share/fftw")
 
 function(download_conda_package LABEL SUBDIR FILENAME SHA256 OUT_ROOT)
@@ -61,9 +67,9 @@ if(PLATFORM STREQUAL "linux")
     copy_file("${package_root}/include/fftw3.h" "${BUNDLE_DIR}/include/fftw3.h")
     foreach(precision IN ITEMS "" f)
         copy_file("${package_root}/lib/libfftw3${precision}.so.3.7.11"
-                  "${BUNDLE_DIR}/lib/libfftw3${precision}.so")
+                  "${BUNDLE_DIR}/${LIB_SUBDIR}/libfftw3${precision}.so")
         copy_file("${package_root}/lib/libfftw3${precision}.so.3.7.11"
-                  "${BUNDLE_DIR}/bin/libfftw3${precision}.so.3")
+                  "${BUNDLE_DIR}/${BIN_SUBDIR}/libfftw3${precision}.so.3")
     endforeach()
     set(license_root "${package_root}")
     string(CONCAT binary_provenance
@@ -77,9 +83,9 @@ elseif(PLATFORM STREQUAL "windows")
     copy_file("${package_root}/Library/include/fftw3.h" "${BUNDLE_DIR}/include/fftw3.h")
     foreach(precision IN ITEMS "" f)
         copy_file("${package_root}/Library/lib/fftw3${precision}.lib"
-                  "${BUNDLE_DIR}/lib/fftw3${precision}.lib")
+                  "${BUNDLE_DIR}/${LIB_SUBDIR}/fftw3${precision}.lib")
         copy_file("${package_root}/Library/bin/fftw3${precision}.dll"
-                  "${BUNDLE_DIR}/bin/fftw3${precision}.dll")
+                  "${BUNDLE_DIR}/${BIN_SUBDIR}/fftw3${precision}.dll")
     endforeach()
     set(license_root "${package_root}")
     string(CONCAT binary_provenance
@@ -101,14 +107,14 @@ elseif(PLATFORM STREQUAL "macos")
             COMMAND lipo -create
                 "${arm_root}/lib/${runtime_name}"
                 "${x64_root}/lib/${runtime_name}"
-                -output "${BUNDLE_DIR}/bin/${runtime_name}"
+                -output "${BUNDLE_DIR}/${BIN_SUBDIR}/${runtime_name}"
             COMMAND_ERROR_IS_FATAL ANY)
         execute_process(
             COMMAND install_name_tool -id "@rpath/${runtime_name}"
-                "${BUNDLE_DIR}/bin/${runtime_name}"
+                "${BUNDLE_DIR}/${BIN_SUBDIR}/${runtime_name}"
             COMMAND_ERROR_IS_FATAL ANY)
-        copy_file("${BUNDLE_DIR}/bin/${runtime_name}"
-                  "${BUNDLE_DIR}/lib/libfftw3${precision}.dylib")
+        copy_file("${BUNDLE_DIR}/${BIN_SUBDIR}/${runtime_name}"
+                  "${BUNDLE_DIR}/${LIB_SUBDIR}/libfftw3${precision}.dylib")
     endforeach()
     set(license_root "${arm_root}")
     string(CONCAT binary_provenance
@@ -143,20 +149,5 @@ file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
     "The exact conda build recipe and its BSD-3-Clause license are included in this directory.\n"
     "Neither conda-forge nor its contributors endorse this redistribution.\n")
 
-set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-${PLATFORM}")
-if(PLATFORM STREQUAL "macos")
-    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-macos-universal")
-elseif(PLATFORM STREQUAL "linux")
-    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-linux-x86_64")
-elseif(PLATFORM STREQUAL "windows")
-    set(archive "${OUTPUT_DIR}/fftw-${FFTW_VERSION}-windows-x86_64")
-endif()
-execute_process(
-    COMMAND "${CMAKE_COMMAND}" -E tar cfvz "${archive}.tar.gz" .
-    WORKING_DIRECTORY "${BUNDLE_DIR}"
-    COMMAND_ERROR_IS_FATAL ANY)
-file(SHA256 "${archive}.tar.gz" archive_sha256)
-get_filename_component(archive_name "${archive}.tar.gz" NAME)
-file(WRITE "${archive}.tar.gz.sha256" "${archive_sha256}  ${archive_name}\n")
 file(REMOVE_RECURSE "${WORK_DIR}")
-message(STATUS "Created ${archive}.tar.gz (${archive_sha256})")
+message(STATUS "Staged FFTW ${FFTW_VERSION} (${PLATFORM}) into ${BUNDLE_DIR}")

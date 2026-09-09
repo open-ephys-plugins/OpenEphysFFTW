@@ -111,13 +111,43 @@ endforeach()
 
 #additional libraries
 
-find_library(FFTW_LIBRARY NAMES libfftw3-3 fftw3 fftw3-3)
+#stage the prebuilt FFTW bundle (both precisions) into libs/ if it isn't there yet
+if(MSVC)
+	set(FFTW_PLATFORM windows)
+	set(FFTW_STAGED_MARKER "${CMAKE_CURRENT_SOURCE_DIR}/libs/windows/lib/${CMAKE_LIBRARY_ARCHITECTURE}/fftw3.lib")
+elseif(LINUX)
+	set(FFTW_PLATFORM linux)
+	set(FFTW_STAGED_MARKER "${CMAKE_CURRENT_SOURCE_DIR}/libs/linux/lib/libfftw3.so")
+elseif(APPLE)
+	set(FFTW_PLATFORM macos)
+	set(FFTW_STAGED_MARKER "${CMAKE_CURRENT_SOURCE_DIR}/libs/macos/lib/libfftw3.dylib")
+endif()
+
+if (NOT EXISTS "${FFTW_STAGED_MARKER}")
+	message(STATUS "FFTW library bundle not found, staging it into libs/${FFTW_PLATFORM}...")
+	execute_process(
+		COMMAND "${CMAKE_COMMAND}" -DPLATFORM=${FFTW_PLATFORM} -DOUTPUT_DIR=${CMAKE_CURRENT_SOURCE_DIR}/libs
+			-P "${CMAKE_CURRENT_SOURCE_DIR}/tools/PrepareFFTWBundle.cmake"
+		RESULT_VARIABLE FFTW_BUNDLE_RESULT)
+	if (NOT FFTW_BUNDLE_RESULT EQUAL 0)
+		message(FATAL_ERROR "Failed to stage the FFTW library bundle")
+	endif()
+endif()
+
+find_library(FFTW_LIBRARY NAMES fftw3)
+find_library(FFTW_F_LIBRARY NAMES fftw3f)
 find_path(FFTW_INCLUDE_DIRS fftw3.h)
 
 if (NOT FFTW_LIBRARY)
-	message(FATAL_ERROR "FFTW library not found")
+	message(FATAL_ERROR "FFTW double-precision library not found")
 else()
 	message(STATUS "FFTW library: ${FFTW_LIBRARY}")
+endif()
+
+if (NOT FFTW_F_LIBRARY)
+	message(FATAL_ERROR "FFTW single-precision library not found")
+else()
+	message(STATUS "FFTW single-precision library: ${FFTW_F_LIBRARY}")
 endif()
 
 if (NOT FFTW_INCLUDE_DIRS)
@@ -133,5 +163,5 @@ elseif(APPLE)
 	install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/libs/macos/bin/ DESTINATION $ENV{HOME}/Library/Application\ Support/open-ephys/shared-api10)
 endif()
 
-target_link_libraries(${COMMONLIB_NAME} ${FFTW_LIBRARY})
+target_link_libraries(${COMMONLIB_NAME} ${FFTW_LIBRARY} ${FFTW_F_LIBRARY})
 target_include_directories(${COMMONLIB_NAME} PRIVATE ${FFTW_INCLUDE_DIRS})
