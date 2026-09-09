@@ -57,6 +57,8 @@ jobs:
         mkdir shared 
         cp -r $build_dir/*.so shared
         cp -r libs/linux/bin/* shared
+        mkdir -p licenses
+        cp -r libs/linux/share/fftw licenses/fftw
         zipfile=${package}_${new_plugin_ver}.zip
-        zip -r -X $zipfile shared
+        zip -r -X $zipfile shared licenses
         curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"

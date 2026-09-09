@@ -6,31 +6,33 @@ It is currently used by the [Phase Calculator](https://github.com/tne-lab/phase-
 
 ## Dependency
 
-OpenEphysFFTW uses the complete non-threaded, shared double- and
-single-precision FFTW 3.3.11 libraries. Platform bundles are prepared from
-hash-pinned conda-forge packages; FFTW's license, provenance, and exact build
-recipe accompany every bundle. The corresponding FFTW source is published with
-the dependency release.
+OpenEphysFFTW uses complete non-threaded, shared double- and single-precision
+FFTW 3.3.11 libraries. On the first configuration, CMake downloads exact,
+hash-pinned conda-forge packages and stages the current platform under `libs/`.
+Later configurations validate and reuse those ignored local files; conda itself
+is not required.
 
 FFTW is redistributed under GPL-2.0-or-later. Conda-forge's recipe scripts are
 redistributed under BSD-3-Clause; their notice and disclaimer remain alongside
 the recipes. The bundles identify conda-forge only as their build provenance
 and do not imply endorsement.
 
-The packaging workflow validates all three bundles. A dependency tag stages a
-draft release containing the bundles, checksum sidecars, and corresponding
-source. Enable GitHub release immutability for this repository before
-publishing the draft. Normal builds can then verify each archive against its
-immutable checksum sidecar without copying generated hashes back into Git.
+For an offline build or a read-only source checkout, set `FFTW_ROOT` to a
+previously staged platform directory:
+
+```bash
+cmake -S . -B Build -DFFTW_ROOT=/path/to/libs/linux
+```
+
+Automatic staging requires CMake 3.24 or newer. Builds using `FFTW_ROOT` retain
+the project's CMake 3.15 minimum.
 
 The bundles intentionally omit the separate long-double, MPI, OpenMP, and
 threaded FFTW libraries. The `fftw3` and `fftw3f` libraries themselves are not
 modified or symbol-stripped.
 
-See [FFTW Dependency Releases](DEPENDENCY_RELEASES.md) for the two-PR update and
-publication procedure. The packaging PR must merge before its dependency tag
-is created; a separate consumption PR removes the old Git-tracked binaries only
-after the immutable release exists.
+The packaged library includes FFTW's license, source provenance, and the
+conda-forge recipe used to build the binaries.
 
 ## Installation
 

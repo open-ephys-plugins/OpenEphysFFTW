@@ -8,8 +8,21 @@ if(NOT DEFINED OUTPUT_DIR)
 endif()
 
 set(FFTW_VERSION 3.3.11)
+file(MAKE_DIRECTORY "${OUTPUT_DIR}")
+file(LOCK "${OUTPUT_DIR}/.prepare-${PLATFORM}.lock"
+    GUARD PROCESS TIMEOUT 300 RESULT_VARIABLE lock_result)
+if(lock_result)
+    message(FATAL_ERROR "Could not lock the local FFTW stage: ${lock_result}")
+endif()
+
 set(WORK_DIR "${OUTPUT_DIR}/.fftw-package-work-${PLATFORM}")
-set(BUNDLE_DIR "${OUTPUT_DIR}/${PLATFORM}")
+set(FINAL_BUNDLE_DIR "${OUTPUT_DIR}/${PLATFORM}")
+set(BUNDLE_DIR "${OUTPUT_DIR}/.${PLATFORM}-staging")
+file(SHA256 "${CMAKE_CURRENT_LIST_FILE}" prepare_sha256)
+string(CONCAT expected_stage_marker
+    "FFTW ${FFTW_VERSION}\n"
+    "Prepare script SHA-256: ${prepare_sha256}\n")
+
 # Only the x86_64/universal binaries are fetched, so Windows stages under an
 # arch subfolder to match the existing libs/windows/{lib,bin}/x64 layout.
 set(LIB_SUBDIR "lib")
@@ -19,8 +32,45 @@ if(PLATFORM STREQUAL "windows")
     set(BIN_SUBDIR "bin/x64")
 endif()
 
-file(REMOVE_RECURSE "${WORK_DIR}" "${BUNDLE_DIR}/include" "${BUNDLE_DIR}/${LIB_SUBDIR}"
-                    "${BUNDLE_DIR}/${BIN_SUBDIR}" "${BUNDLE_DIR}/share/fftw")
+set(required_files
+    "include/fftw3.h"
+    "share/fftw/COPYING"
+    "share/fftw/PROVENANCE.txt")
+if(PLATFORM STREQUAL "linux")
+    list(APPEND required_files
+        "lib/libfftw3.so" "lib/libfftw3f.so"
+        "bin/libfftw3.so.3" "bin/libfftw3f.so.3")
+elseif(PLATFORM STREQUAL "windows")
+    list(APPEND required_files
+        "lib/x64/fftw3.lib" "lib/x64/fftw3f.lib"
+        "bin/x64/fftw3.dll" "bin/x64/fftw3f.dll")
+elseif(PLATFORM STREQUAL "macos")
+    list(APPEND required_files
+        "lib/libfftw3.dylib" "lib/libfftw3f.dylib"
+        "bin/libfftw3.3.dylib" "bin/libfftw3f.3.dylib")
+endif()
+
+set(bundle_complete TRUE)
+foreach(required_file IN LISTS required_files)
+    if(NOT EXISTS "${FINAL_BUNDLE_DIR}/${required_file}")
+        set(bundle_complete FALSE)
+    endif()
+endforeach()
+set(stage_marker "${FINAL_BUNDLE_DIR}/share/fftw/STAGE.txt")
+if(EXISTS "${stage_marker}")
+    file(READ "${stage_marker}" actual_stage_marker)
+else()
+    set(actual_stage_marker "")
+endif()
+if(NOT actual_stage_marker STREQUAL expected_stage_marker)
+    set(bundle_complete FALSE)
+endif()
+if(bundle_complete)
+    message(STATUS "Using staged FFTW ${FFTW_VERSION}: ${FINAL_BUNDLE_DIR}")
+    return()
+endif()
+
+file(REMOVE_RECURSE "${WORK_DIR}" "${BUNDLE_DIR}")
 file(MAKE_DIRECTORY "${WORK_DIR}" "${BUNDLE_DIR}/include"
                     "${BUNDLE_DIR}/${LIB_SUBDIR}" "${BUNDLE_DIR}/${BIN_SUBDIR}"
                     "${BUNDLE_DIR}/share/fftw")
@@ -149,5 +199,8 @@ file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
     "The exact conda build recipe and its BSD-3-Clause license are included in this directory.\n"
     "Neither conda-forge nor its contributors endorse this redistribution.\n")
 
+file(WRITE "${BUNDLE_DIR}/share/fftw/STAGE.txt" "${expected_stage_marker}")
+file(REMOVE_RECURSE "${FINAL_BUNDLE_DIR}")
+file(RENAME "${BUNDLE_DIR}" "${FINAL_BUNDLE_DIR}")
 file(REMOVE_RECURSE "${WORK_DIR}")
-message(STATUS "Staged FFTW ${FFTW_VERSION} (${PLATFORM}) into ${BUNDLE_DIR}")
+message(STATUS "Staged FFTW ${FFTW_VERSION} (${PLATFORM}) into ${FINAL_BUNDLE_DIR}")

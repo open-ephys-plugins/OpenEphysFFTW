@@ -69,7 +69,9 @@ jobs:
         then
           cp -v libs/windows/bin/x64/*.dll shared
         fi
+        mkdir -p licenses
+        cp -r libs/windows/share/fftw licenses/fftw
         zipfile=${package}_${new_plugin_ver}.zip
-        powershell Compress-Archive -Path "shared" -DestinationPath ${zipfile}
+        powershell Compress-Archive -Path "shared","licenses" -DestinationPath ${zipfile}
         curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/windows/$zipfile"
       shell: bash
