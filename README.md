@@ -24,8 +24,8 @@ previously staged platform directory:
 cmake -S . -B Build -DFFTW_ROOT=/path/to/libs/linux
 ```
 
-Automatic staging requires CMake 3.24 or newer. Builds using `FFTW_ROOT` retain
-the project's CMake 3.15 minimum.
+Automatic staging requires CMake 3.19 or newer. Builds using `FFTW_ROOT` retain
+the project's existing CMake 3.5 minimum.
 
 The bundles intentionally omit the separate long-double, MPI, OpenMP, and
 threaded FFTW libraries. The `fftw3` and `fftw3f` libraries themselves are not

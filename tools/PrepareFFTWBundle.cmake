@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.19)
 
 if(NOT DEFINED PLATFORM OR NOT PLATFORM MATCHES "^(linux|macos|windows)$")
     message(FATAL_ERROR "Set PLATFORM to linux, macos, or windows")
