@@ -10,29 +10,37 @@ on:
     branches:
       - main # Runs on pull requests targeting the main branch
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
 
   build-linux:
 
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
     - name: setup
       run: |
         sudo apt update
         cd ../..
-        git clone https://github.com/open-ephys/plugin-GUI.git --branch main
+        git clone --depth 1 https://github.com/open-ephys/plugin-GUI.git --branch main
         sudo ./plugin-GUI/Resources/Scripts/install_linux_dependencies.sh
         cd plugin-GUI/Build && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
     - name: build
       run: |
         cd Build
         cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-        make
+        cmake --build . --parallel
 #    - name: test
 #      run: cd build && ctest
     - name: deploy
@@ -49,6 +57,8 @@ jobs:
         mkdir shared 
         cp -r $build_dir/*.so shared
         cp -r libs/linux/bin/* shared
+        mkdir -p licenses
+        cp -r libs/linux/share/fftw licenses/fftw
         zipfile=${package}_${new_plugin_ver}.zip
-        zip -r -X $zipfile shared
-        curl -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T $zipfile "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"
+        zip -r -X $zipfile shared licenses
+        curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"
