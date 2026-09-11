@@ -24,18 +24,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef OEP_FFTW_BATCH_H_INCLUDED
 #define OEP_FFTW_BATCH_H_INCLUDED
 
+#include <CommonLibHeader.h>
 #include <complex>
 #include <memory>
-
-#if defined(_WIN32)
-#if defined(OEPLUGIN)
-#define OEP_FFTW_API __declspec (dllimport)
-#else
-#define OEP_FFTW_API __declspec (dllexport)
-#endif
-#else
-#define OEP_FFTW_API __attribute__ ((visibility ("default")))
-#endif
 
 /**
     Owns aligned storage and a reusable single-precision real-to-complex batch.
@@ -48,7 +39,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     for distinct instances, but callers must not execute one instance twice at
     the same time because its input and output storage are shared.
 */
-class OEP_FFTW_API FFTWRealToComplexBatchFloat
+class COMMON_LIB FFTWRealToComplexBatchFloat
 {
 public:
     FFTWRealToComplexBatchFloat (int transformLength,
@@ -76,7 +67,7 @@ private:
 };
 
 /** Double-precision counterpart to FFTWRealToComplexBatchFloat. */
-class OEP_FFTW_API FFTWRealToComplexBatchDouble
+class COMMON_LIB FFTWRealToComplexBatchDouble
 {
 public:
     FFTWRealToComplexBatchDouble (int transformLength,
@@ -110,7 +101,7 @@ private:
     Hermitian half-spectrum layout; output rows contain transformLength real
     values. Like FFTW itself, execute() does not normalize the inverse transform.
 */
-class OEP_FFTW_API FFTWComplexToRealBatchFloat
+class COMMON_LIB FFTWComplexToRealBatchFloat
 {
 public:
     FFTWComplexToRealBatchFloat (int transformLength,
@@ -138,7 +129,7 @@ private:
 };
 
 /** Double-precision counterpart to FFTWComplexToRealBatchFloat. */
-class OEP_FFTW_API FFTWComplexToRealBatchDouble
+class COMMON_LIB FFTWComplexToRealBatchDouble
 {
 public:
     FFTWComplexToRealBatchDouble (int transformLength,
@@ -164,7 +155,5 @@ private:
     FFTWComplexToRealBatchDouble (const FFTWComplexToRealBatchDouble&) = delete;
     FFTWComplexToRealBatchDouble& operator= (const FFTWComplexToRealBatchDouble&) = delete;
 };
-
-#undef OEP_FFTW_API
 
 #endif // OEP_FFTW_BATCH_H_INCLUDED
