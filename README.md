@@ -4,6 +4,12 @@ This is a small library to wrap FFTW functionality useful for Open Ephys.
 
 It is currently used by the [Phase Calculator](https://github.com/tne-lab/phase-calculator) and Real-Time Coherence plugins (under development).
 
+`OpenEphysFFTWBatch.h` provides a lightweight, JUCE-independent batch API for
+aligned single- and double-precision real-to-complex and complex-to-real
+transforms. Batches are transform-major, with contiguous rows. Inverse
+transforms follow FFTW's convention and are not normalized. Create plans off
+real-time threads and reuse them.
+
 ## Dependency
 
 OpenEphysFFTW uses complete non-threaded, shared double- and single-precision
