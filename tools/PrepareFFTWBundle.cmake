@@ -35,6 +35,8 @@ endif()
 set(required_files
     "include/fftw3.h"
     "share/fftw/COPYING"
+    "share/fftw/COPYRIGHT"
+    "share/fftw/CONDA-FORGE-LICENSE.txt"
     "share/fftw/PROVENANCE.txt")
 if(PLATFORM STREQUAL "linux")
     list(APPEND required_files
@@ -177,18 +179,11 @@ endif()
 
 copy_file("${license_root}/info/licenses/COPYING"
           "${BUNDLE_DIR}/share/fftw/COPYING")
-if(PLATFORM STREQUAL "macos")
-    file(COPY "${arm_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
-    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
-                "${BUNDLE_DIR}/share/fftw/conda-recipe-osx-arm64")
-    file(COPY "${x64_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
-    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
-                "${BUNDLE_DIR}/share/fftw/conda-recipe-osx-64")
-else()
-    file(COPY "${package_root}/info/recipe" DESTINATION "${BUNDLE_DIR}/share/fftw")
-    file(RENAME "${BUNDLE_DIR}/share/fftw/recipe"
-                "${BUNDLE_DIR}/share/fftw/conda-recipe")
-endif()
+file(WRITE "${BUNDLE_DIR}/share/fftw/COPYRIGHT"
+    "Copyright (c) 2003, 2007-14 Matteo Frigo\n"
+    "Copyright (c) 2003, 2007-14 Massachusetts Institute of Technology\n")
+copy_file("${license_root}/info/recipe/parent/recipe-scripts-license.txt"
+          "${BUNDLE_DIR}/share/fftw/CONDA-FORGE-LICENSE.txt")
 
 file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
     "FFTW ${FFTW_VERSION}\n"
@@ -196,7 +191,8 @@ file(WRITE "${BUNDLE_DIR}/share/fftw/PROVENANCE.txt"
     "Source SHA-256: 5630c24cdeb33b131612f7eb4b1a9934234754f9f388ff8617458d0be6f239a1\n"
     "Binary source: https://conda.anaconda.org/conda-forge/\n"
     "${binary_provenance}"
-    "The exact conda build recipe and its BSD-3-Clause license are included in this directory.\n"
+    "FFTW license: GPL-2.0-or-later; recipe scripts: BSD-3-Clause.\n"
+    "Build recipes: https://github.com/conda-forge/fftw-feedstock\n"
     "Neither conda-forge nor its contributors endorse this redistribution.\n")
 
 file(WRITE "${BUNDLE_DIR}/share/fftw/STAGE.txt" "${expected_stage_marker}")

@@ -7,9 +7,9 @@ endif()
 
 find_path(FFTW_INCLUDE_DIR fftw3.h PATHS "${FFTW_ROOT}/include" NO_DEFAULT_PATH)
 find_library(FFTW_DOUBLE_LIBRARY NAMES fftw3 libfftw3-3
-             PATHS "${FFTW_ROOT}/lib" NO_DEFAULT_PATH)
+             PATHS "${FFTW_ROOT}/lib" "${FFTW_ROOT}/lib/x64" NO_DEFAULT_PATH)
 find_library(FFTW_FLOAT_LIBRARY NAMES fftw3f libfftw3f-3
-             PATHS "${FFTW_ROOT}/lib" NO_DEFAULT_PATH)
+             PATHS "${FFTW_ROOT}/lib" "${FFTW_ROOT}/lib/x64" NO_DEFAULT_PATH)
 if(NOT FFTW_INCLUDE_DIR OR NOT FFTW_DOUBLE_LIBRARY OR NOT FFTW_FLOAT_LIBRARY)
     message(FATAL_ERROR "The FFTW bundle is incomplete")
 endif()
@@ -21,6 +21,12 @@ target_link_libraries(fftw_dependency_smoke PRIVATE
 
 enable_testing()
 add_test(NAME fftw_dependency_smoke COMMAND fftw_dependency_smoke)
+set(fftw_runtime_dir "${FFTW_ROOT}/bin")
+if(WIN32)
+    if(EXISTS "${FFTW_ROOT}/bin/x64")
+        set(fftw_runtime_dir "${FFTW_ROOT}/bin/x64")
+    endif()
+endif()
 set_tests_properties(fftw_dependency_smoke PROPERTIES
     ENVIRONMENT_MODIFICATION
-        "PATH=path_list_prepend:${FFTW_ROOT}/bin;LD_LIBRARY_PATH=path_list_prepend:${FFTW_ROOT}/bin;DYLD_LIBRARY_PATH=path_list_prepend:${FFTW_ROOT}/bin")
+        "PATH=path_list_prepend:${fftw_runtime_dir};LD_LIBRARY_PATH=path_list_prepend:${fftw_runtime_dir};DYLD_LIBRARY_PATH=path_list_prepend:${fftw_runtime_dir}")

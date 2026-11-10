@@ -12,10 +12,10 @@ hash-pinned conda-forge packages and stages the current platform under `libs/`.
 Later configurations validate and reuse those ignored local files; conda itself
 is not required.
 
-FFTW is redistributed under GPL-2.0-or-later. Conda-forge's recipe scripts are
-redistributed under BSD-3-Clause; their notice and disclaimer remain alongside
-the recipes. The bundles identify conda-forge only as their build provenance
-and do not imply endorsement.
+FFTW is redistributed under GPL-2.0-or-later. The bundles include FFTW's license
+and copyright notice, conda-forge's BSD-3-Clause notice, and source/build
+provenance. No conda recipe folders or source archives are staged or installed.
+Conda-forge is identified only as build provenance, without implying endorsement.
 
 For an offline build or a read-only source checkout, set `FFTW_ROOT` to a
 previously staged platform directory:

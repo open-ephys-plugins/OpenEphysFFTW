@@ -95,8 +95,12 @@ install(TARGETS ${COMMONLIB_NAME}
 	RUNTIME DESTINATION ${GUI_COMMONLIB_DIR}/$<CONFIG>/bin/${CMAKE_LIBRARY_ARCHITECTURE} # .dll files
 	)
 install(FILES ${HEADER_FILES} DESTINATION ${GUI_COMMONLIB_DIR}/include)
-install(DIRECTORY ${FFTW_DEPENDENCY_ROOT}/share/fftw
-	DESTINATION ${GUI_COMMONLIB_DIR}/share)
+set(FFTW_NOTICE_FILES
+	"${FFTW_DEPENDENCY_ROOT}/share/fftw/COPYING"
+	"${FFTW_DEPENDENCY_ROOT}/share/fftw/COPYRIGHT"
+	"${FFTW_DEPENDENCY_ROOT}/share/fftw/CONDA-FORGE-LICENSE.txt"
+	"${FFTW_DEPENDENCY_ROOT}/share/fftw/PROVENANCE.txt")
+install(FILES ${FFTW_NOTICE_FILES} DESTINATION ${GUI_COMMONLIB_DIR}/share/fftw)
 
 #Libraries and compiler options
 if(MSVC)
@@ -104,6 +108,7 @@ if(MSVC)
 	target_compile_options(${COMMONLIB_NAME} PRIVATE /sdl- /W0)
 
 	install(TARGETS ${COMMONLIB_NAME} RUNTIME DESTINATION ${GUI_BIN_DIR}/shared)
+	set(FFTW_RUNTIME_INSTALL_DIR "${GUI_BIN_DIR}/shared")
 
 elseif(LINUX)
 	target_link_libraries(${COMMONLIB_NAME} GL X11 Xext Xinerama asound dl freetype pthread rt)
@@ -113,6 +118,7 @@ elseif(LINUX)
 	target_compile_options(${COMMONLIB_NAME} PRIVATE -O3) #enable optimization for linux debug
 	
 	install(TARGETS ${COMMONLIB_NAME} LIBRARY DESTINATION ${GUI_BIN_DIR}/shared)
+	set(FFTW_RUNTIME_INSTALL_DIR "${GUI_BIN_DIR}/shared")
 
 elseif(APPLE)
 	set_target_properties(${COMMONLIB_NAME} PROPERTIES BUNDLE FALSE)
@@ -123,6 +129,12 @@ elseif(APPLE)
 		XCODE_ATTRIBUTE_CODE_SIGNING_ALLOWED NO)
 
 	install(TARGETS ${COMMONLIB_NAME} DESTINATION $ENV{HOME}/Library/Application\ Support/open-ephys/shared-api10)
+	set(FFTW_RUNTIME_INSTALL_DIR "$ENV{HOME}/Library/Application Support/open-ephys/shared-api10")
+endif()
+
+if(FFTW_RUNTIME_INSTALL_DIR)
+	install(FILES ${FFTW_NOTICE_FILES}
+		DESTINATION "${FFTW_RUNTIME_INSTALL_DIR}/notices/fftw")
 endif()
 
 #create filters for vs and xcode
