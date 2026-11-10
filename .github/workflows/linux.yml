@@ -10,33 +10,41 @@ on:
     branches:
       - main # Runs on pull requests targeting the main branch
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 jobs:
 
   build-linux:
 
     if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.base_ref == 'main')
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         fetch-depth: 0
     - name: setup
       run: |
         sudo apt update
         cd ../..
-        git clone https://github.com/open-ephys/plugin-GUI.git --branch main
+        git clone --depth 1 https://github.com/open-ephys/plugin-GUI.git --branch main
         sudo ./plugin-GUI/Resources/Scripts/install_linux_dependencies.sh
         cd plugin-GUI/Build && cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
     - name: build
       run: |
         cd Build
         cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release ..
-        make
+        cmake --build . --parallel
 #    - name: test
 #      run: cd build && ctest
     - name: deploy
-      if: github.ref == 'refs/heads/main'
+      if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
       env:
         ARTIFACTORY_ACCESS_TOKEN: ${{ secrets.ARTIFACTORY_ACCESS_TOKEN }}
         build_dir: "Build"
@@ -44,11 +52,13 @@ jobs:
         package: OpenEphysFFTW-linux
       run: |
         plugin_api=$(grep -rnw ../../plugin-GUI/Source -e '#define PLUGIN_API_VER' | grep -Eo "[0-9]*" | tail -1)
-        tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+        tag="$GITHUB_REF_NAME"
         new_plugin_ver=$tag-API$plugin_api
         mkdir shared 
         cp -r $build_dir/*.so shared
         cp -r libs/linux/bin/* shared
+        mkdir -p shared/notices/fftw
+        cp -v libs/linux/share/fftw/{COPYING,COPYRIGHT,CONDA-FORGE-LICENSE.txt,PROVENANCE.txt} shared/notices/fftw/
         zipfile=${package}_${new_plugin_ver}.zip
         zip -r -X $zipfile shared
-        curl -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T $zipfile "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"
+        curl --fail --show-error --retry 3 -H "X-JFrog-Art-Api:$ARTIFACTORY_ACCESS_TOKEN" -T "$zipfile" "https://openephys.jfrog.io/artifactory/OpenEphysFFTW-plugin/linux/$zipfile"

@@ -32,6 +32,8 @@ transform library
 #include <CommonLibHeader.h>
 #include <complex>
 
+#include "OpenEphysFFTWBatch.h"
+
 // forward-declare:
 struct fftw_plan_s;
 

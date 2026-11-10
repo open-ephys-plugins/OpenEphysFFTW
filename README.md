@@ -4,9 +4,41 @@ This is a small library to wrap FFTW functionality useful for Open Ephys.
 
 It is currently used by the [Phase Calculator](https://github.com/tne-lab/phase-calculator) and Real-Time Coherence plugins (under development).
 
+`OpenEphysFFTWBatch.h` provides a lightweight, JUCE-independent batch API for
+aligned single- and double-precision real-to-complex and complex-to-real
+transforms. Batches are transform-major, with contiguous rows. Inverse
+transforms follow FFTW's convention and are not normalized. Create plans off
+real-time threads and reuse them.
+
 ## Dependency
 
-On Windows, Linux, and Mac, the precompiled FFTW library is included in the `libs` folder - no need to install it manually.
+OpenEphysFFTW uses complete non-threaded, shared double- and single-precision
+FFTW 3.3.11 libraries. On the first configuration, CMake downloads exact,
+hash-pinned conda-forge packages and stages the current platform under `libs/`.
+Later configurations validate and reuse those ignored local files; conda itself
+is not required.
+
+FFTW is redistributed under GPL-2.0-or-later. The bundles include FFTW's license
+and copyright notice, conda-forge's BSD-3-Clause notice, and source/build
+provenance. No conda recipe folders or source archives are staged or installed.
+Conda-forge is identified only as build provenance, without implying endorsement.
+
+For an offline build or a read-only source checkout, set `FFTW_ROOT` to a
+previously staged platform directory:
+
+```bash
+cmake -S . -B Build -DFFTW_ROOT=/path/to/libs/linux
+```
+
+Automatic staging requires CMake 3.19 or newer. Builds using `FFTW_ROOT` retain
+the project's existing CMake 3.5 minimum.
+
+The bundles intentionally omit the separate long-double, MPI, OpenMP, and
+threaded FFTW libraries. The `fftw3` and `fftw3f` libraries themselves are not
+modified or symbol-stripped.
+
+The packaged library includes FFTW's license, source provenance, and the
+conda-forge recipe used to build the binaries.
 
 ## Installation
 
